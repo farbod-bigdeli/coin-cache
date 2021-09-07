@@ -6,6 +6,7 @@ import (
 	// "fmt"
 	"net/http"
 
+	"github.com/farbod-bigdeli/app/coin"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 )
@@ -77,23 +78,14 @@ func getAll(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func get(w http.ResponseWriter, r *http.Request) {
+func getDetailed(w http.ResponseWriter, r *http.Request) {
 	symbol := mux.Vars(r)["sym"]
-	result, err := getRedis(symbol)
-	if err == redis.Nil {
-        respondJSON(w, 500, "Key does  not exist")
-		return
-    } else if err != nil {
-        panic(err)
-	}
-	var data DetailedCoin
-	err = json.Unmarshal([]byte(result), &data)
+	detailedCoin, err := coin.GetDetailed(symbol)
 	if err != nil {
-		respondJSON(w, 500, "Failed")
+		respondJSON(w, 200, err.Error())
 		return
 	}
-	respondJSON(w, 201, data)
-
+	respondJSON(w, 200, detailedCoin)
 }
 
 
@@ -168,7 +160,7 @@ func main() {
 	r.HandleFunc("/update/detail/{sym}", update).Methods("POST")
     r.HandleFunc("/get/top", checkToken(getTop)).Methods("GET")
 	r.HandleFunc("/get/all", checkToken(getAll)).Methods("GET")
-	r.HandleFunc("/get/detail/{sym}", checkToken(get)).Methods("GET")
+	r.HandleFunc("/get/detail/{sym}", checkToken(getDetailed)).Methods("GET")
 	
 	// r.HandleFunc("/get/all", checkToken(get)).Methods("GET")
 
