@@ -3,14 +3,10 @@ package main
 
 import (
 	"github.com/go-redis/redis/v8"
-    "context"
 )
 
-var ctx = context.Background()
 
-type redisKeys string
 
-type redisClient 
 
 
 const (
@@ -30,10 +26,10 @@ func newClient ()  *redis.Client{
 func storeRedis (key redisKeys, value *[]byte) {
 	rdb := newClient() 
 	err := rdb.Set(ctx, string(key), *value, 0).Err()
+    defer rdb.Close()
     if err != nil { 
         panic(err)
     }
-    defer rdb.Close()
 
 }
 
