@@ -10,8 +10,8 @@ import (
 
 
 const (
-	TopCryptos redisKeys = "top_five_cryptos"
-	AllCryptos redisKeys= "all_cryptos"	
+	TopCryptos string = "top_five_cryptos"
+	AllCryptos string= "all_cryptos"	
 )
 
 func newClient ()  *redis.Client{
@@ -23,7 +23,7 @@ func newClient ()  *redis.Client{
     
     return rdb
 }
-func storeRedis (key redisKeys, value *[]byte) {
+func storeRedis (key string, value *[]byte) {
 	rdb := newClient() 
 	err := rdb.Set(ctx, string(key), *value, 0).Err()
     defer rdb.Close()
@@ -33,7 +33,7 @@ func storeRedis (key redisKeys, value *[]byte) {
 
 }
 
-func getRedis (key redisKeys) (string, error) {
+func getRedis (key string) (string, error) {
     rdb := newClient()
     defer rdb.Close()
 	return rdb.Get(ctx, string(key)).Result()
