@@ -32,3 +32,13 @@ func GetDetailed(symbol string) (DetailedCoin, error){
 	return detailedCoin, nil
 
 }
+
+func (detaledCoin DetailedCoin) UpdateDetailed (key string) error {
+	data, err := json.Marshal(detaledCoin)
+	if err != nil {
+		return errors.New("marshal failed")
+	}
+	redisHandler.Store(key, &data)
+
+	return nil
+}

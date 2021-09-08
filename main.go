@@ -7,31 +7,14 @@ import (
 	"net/http"
 
 	"github.com/farbod-bigdeli/app/coin"
-	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 )
 
 
-type Coin struct {
-    Symbol  	string 	`json:"symbol"`
-    FaName 		string 	`json:"faName"`
-	Price 		float32 `json:"price"`	
-	Change1D    float32	`json:"change1d"`
-	Chart		string  `json:"chart"`
-}
-
-type DetailedCoin struct {
-	Coin
-	HighestPrice1D 	float32 `json:"highestPrice1D"`
-	LowestPrice1D 	float32	`json:"lowestPrice1D"`
-	Volume1D 		float32	`json:"volume1D"`
-	HighestBuyPrice float32	`json:"highestBuyPrice"`
-	LowestSellPrice float32	`json:"lowestSellPrice"`
-}
 
 type CryptoBothPrice struct {
-	Usdt []Coin `json:"usdt"`
-	Irt	 []Coin `json:"irt"`
+	Usdt []coin.Coin `json:"usdt"`
+	Irt	 []coin.Coin `json:"irt"`
 }
 
 
@@ -42,39 +25,23 @@ var ctx = context.Background()
 
 
 func getTop(w http.ResponseWriter, r *http.Request) {
-	result, err := getRedis(TopCryptos)
-	if err == redis.Nil {
-        respondJSON(w, 500, "Key does  not exist")
-		return
-    } else if err != nil {
-        panic(err)
-	}
-	var data CryptoBothPrice
-	err = json.Unmarshal([]byte(result), &data)
+	detailedCoin, err := coin.GetCollection(coin.TopCryptos)
 	if err != nil {
-		respondJSON(w, 500, "Failed")
+		respondJSON(w, 200, err.Error())
 		return
 	}
-	respondJSON(w, 201, data)
+	respondJSON(w, 200, detailedCoin)
 
 }
 
 
 func getAll(w http.ResponseWriter, r *http.Request) {
-	result, err := getRedis(AllCryptos)
-	if err == redis.Nil {
-        respondJSON(w, 500, "Key does  not exist")
-		return
-    } else if err != nil {
-        panic(err)
-	}
-	var data CryptoBothPrice
-	err = json.Unmarshal([]byte(result), &data)
+	detailedCoin, err := coin.GetCollection(coin.AllCryptos)
 	if err != nil {
-		respondJSON(w, 500, "Failed")
+		respondJSON(w, 200, err.Error())
 		return
 	}
-	respondJSON(w, 201, data)
+	respondJSON(w, 200, detailedCoin)
 
 }
 
@@ -90,44 +57,44 @@ func getDetailed(w http.ResponseWriter, r *http.Request) {
 
 
 func updateTop (w http.ResponseWriter, r *http.Request) {
-	var in CryptoBothPrice
-	err := json.NewDecoder(r.Body).Decode(&in)
-    
+	var coinCollection coin.CoinCollection
+	err := json.NewDecoder(r.Body).Decode(&coinCollection)
 	if err != nil {
         respondJSON(w, 500, "Decode failed")
 		return
     }
-
-	result, err :=json.Marshal(in)
-	if err != nil {
-		respondJSON(w, 500, "Marshal failed")
-		return
-	}
-	
-	storeRedis(TopCryptos,&result)
-	respondJSON(w, 200, "Succesful")
+	coinCollection.UpdateCollection(coin.TopCryptos)
+	respondJSON(w, 200, "Successful")
 
 }
 
-func update(w http.ResponseWriter, r *http.Request) {
-	symbol := mux.Vars(r)["sym"]
-	var in DetailedCoin
-	err := json.NewDecoder(r.Body).Decode(&in)
-    
+func updateAll (w http.ResponseWriter, r *http.Request) {
+	var coinCollection coin.CoinCollection
+	err := json.NewDecoder(r.Body).Decode(&coinCollection)
 	if err != nil {
         respondJSON(w, 500, "Decode failed")
 		return
     }
+	coinCollection.UpdateCollection(coin.TopCryptos)
+	respondJSON(w, 200, "Successful")
 
-	result, err :=json.Marshal(in)
+}
+
+
+func update(w http.ResponseWriter, r *http.Request) {
+	symbol := mux.Vars(r)["sym"]
+	var detailedCoin coin.DetailedCoin
+	err := json.NewDecoder(r.Body).Decode(&detailedCoin)
 	if err != nil {
-		respondJSON(w, 500, "Marshal failed")
+        respondJSON(w, 500, "Decode failed")
+		return
+    }
+	err = detailedCoin.UpdateDetailed(symbol)
+	if err != nil {
+		respondJSON(w, 500, "Failed")
 		return
 	}
-	
-	storeRedis(symbol, &result)
-	respondJSON(w, 200, "Succesful")
-
+	respondJSON(w, 200, "Successful")
 }
 
 
@@ -157,12 +124,11 @@ func checkToken(next http.HandlerFunc) http.HandlerFunc {
 func main() {
     r := mux.NewRouter()
     r.HandleFunc("/update/top", updateTop).Methods("POST")
+	r.HandleFunc("/update/all", updateTop).Methods("POST")
 	r.HandleFunc("/update/detail/{sym}", update).Methods("POST")
     r.HandleFunc("/get/top", checkToken(getTop)).Methods("GET")
 	r.HandleFunc("/get/all", checkToken(getAll)).Methods("GET")
 	r.HandleFunc("/get/detail/{sym}", checkToken(getDetailed)).Methods("GET")
 	
-	// r.HandleFunc("/get/all", checkToken(get)).Methods("GET")
-
 	http.ListenAndServe(":8000", r)
 }

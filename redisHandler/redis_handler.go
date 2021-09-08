@@ -8,10 +8,7 @@ import (
 
 const NotFound = r.Nil
 
-const (
-	TopCryptos string = "top_five_cryptos"
-	AllCryptos string= "all_cryptos"	
-)
+
 
 var ctx = context.Background()
 
